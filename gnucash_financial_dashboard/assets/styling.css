@@ -1,0 +1,24 @@
+#header {
+    background-color: #119966;
+    color: white;
+    font-weight: bold;
+    padding: 1em 2em;
+}
+
+#below-header {
+    height: 100%;
+}
+
+#sidebar {
+    padding: 1em;
+    background-color: lightgray;
+}
+
+#monthly-avg-table td {
+    text-align: right
+}
+
+
+.mono {
+    font-family: monospace;
+}
