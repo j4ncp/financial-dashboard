@@ -71,6 +71,38 @@ def retrieve_income_expense_transactions(gnucash_filename):
     return df
 
 
+def retrieve_account_balances(gnucash_filename, account_name):
+    conn = sqlite3.connect(gnucash_filename)
+    query = """
+        SELECT
+          transactions.post_date AS tx_date,
+          splits.quantity_num AS quantity_num,
+          splits.quantity_denom AS quantity_denom,
+          accounts.name as account_name,
+          accounts.account_type as account_type,
+          accounts.guid as account_guid,
+          transactions.description as desc
+        FROM transactions
+        INNER JOIN splits 
+          ON splits.tx_guid=transactions.guid
+        INNER JOIN accounts 
+          ON splits.account_guid=accounts.guid
+        WHERE 
+          accounts.name='{}'
+        """.format(account_name)
+    df = pd.read_sql_query(query, conn)
+    # now fix us a small issues with the dating and amounts:
+    df.tx_date = pd.to_datetime(df.tx_date)
+    df["amount"] = df.quantity_num / df.quantity_denom
+    del df["quantity_num"]
+    del df["quantity_denom"]
+    # sort by date
+    df.sort_values(by="tx_date", ascending=True, inplace=True, ignore_index=True)
+    # compute balances
+    df["balance"] = df.amount.cumsum()
+    return df
+
+
 def retrieve_tx_date_range(gnucash_filename):
     df = retrieve_income_expense_transactions(gnucash_filename)
     return df.tx_date.min(), df.tx_date.max()

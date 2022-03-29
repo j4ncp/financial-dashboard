@@ -1,4 +1,4 @@
-from .data import retrieve_income_expense_transactions, retrieve_accounts
+from .data import retrieve_income_expense_transactions, retrieve_accounts, retrieve_account_balances
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -124,8 +124,38 @@ def plot_income_expense_by_month(filename, from_date, to_date):
     fig.update_layout(
         xaxis_title="",
         yaxis_title="Amount [€]",
-        barmode="relative",
-        title="Monthly Balance"
+        barmode="relative"
     )
     return fig
 
+
+def plot_account_balances(filename, account_name, from_date, to_date):
+    """
+    Make a line plot for the balance of a given account
+    """
+    data = retrieve_account_balances(filename, account_name)
+    # filter down dataframe by the timeframe
+    data_frame = data[(data.tx_date >= pd.to_datetime(from_date)) &
+                      (data.tx_date <= pd.to_datetime(to_date))]
+
+    # make plot
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data_frame.tx_date,
+            y=data_frame.balance,
+            marker_color="blue",
+            customdata=data_frame[["amount", "desc"]],
+            hovertemplate='<br>'.join([
+                "Balance: %{y}€",
+                "Date: %{x}",
+                "Amount: %{customdata[0]}€",
+                "Desc: %{customdata[1]}"
+            ])
+        )
+    )
+    fig.update_layout(
+        xaxis_title="",
+        yaxis_title="Balance [€]"
+    )
+    return fig

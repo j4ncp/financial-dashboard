@@ -5,12 +5,15 @@ from datetime import timedelta
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
+import pandas as pd
+
 from .data import retrieve_tx_date_range, \
                   retrieve_last_updated, \
                   retrieve_last_tx_date, \
-                  retrieve_income_expense_balances
+                  retrieve_income_expense_balances, \
+                  retrieve_account_balances
 
-from .plotting import plot_income_expense_by_month, plot_accounts_sunburst
+from .plotting import plot_income_expense_by_month, plot_accounts_sunburst, plot_account_balances
 
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -44,10 +47,43 @@ def build_sidebar():
 
 
 def balance_graph():
-    return dcc.Graph(
-        id="balances-plot",
-        figure=plot_income_expense_by_month(config["db"], "2020-01-01", "2020-12-31")
-    )
+    return [
+        html.H3("Monthly Income and Expenses"),
+        dcc.Graph(
+            id="balances-plot",
+            figure=plot_income_expense_by_month(config["db"], "2020-01-01", "2020-12-31")
+        )
+    ]
+
+
+def balance_account_graph():
+    return [
+        html.H3("Balance for account Girokonto"),
+        dcc.Graph(
+            id="account-plot",
+            figure=plot_account_balances(config["db"], "Girokonto", "2020-01-01", "2020-12-31")
+        )
+    ]
+
+
+def income_sunburst():
+    return [
+        html.H3(f"Income distribution"),
+        dcc.Graph(
+            id="income-sunburst",
+            figure=plot_accounts_sunburst(config["db"], "2020-01-01", "2020-12-31", account_type="INCOME")
+        )
+    ]
+
+
+def expense_sunburst():
+    return [
+        html.H3(f"Income distribution"),
+        dcc.Graph(
+            id="expense-sunburst",
+            figure=plot_accounts_sunburst(config["db"], "2020-01-01", "2020-12-31", account_type="EXPENSE")
+        )
+    ]
 
 
 def balance_totals_area():
@@ -67,15 +103,46 @@ def balance_totals_area():
                     html.Td("Balance"), html.Td(f"{avg_income-avg_expense:.2f}€")
                 ])
             ])
-        ], id="monthly-avg-table")
+        ], id="monthly-avg-table", className="fd-table")
+    ])
+
+
+def balance_account_stat_area():
+    account_name = "Girokonto"
+    from_date, to_date = "2020-01-01", "2020-12-31"
+    # compute first and last balance
+    tx = retrieve_account_balances(config["db"], account_name)
+    data_frame = tx[(tx.tx_date >= pd.to_datetime(from_date)) &
+                    (tx.tx_date <= pd.to_datetime(to_date))]
+    from_balance = data_frame.balance.iloc[0]
+    to_balance = data_frame.balance.iloc[-1]
+
+    return dbc.Container([
+        html.H3(account_name),
+        html.Table([
+            html.Tbody([
+                html.Tr([
+                    html.Td(f"{from_date}"), html.Td(f"{from_balance:.2f}€")
+                ]),
+                html.Tr([
+                    html.Td(f"{to_date}"), html.Td(f"{to_balance:.2f}€")
+                ])
+            ])
+        ], id="account-balance-table", className="fd-table")
     ])
 
 
 def build_content_area():
-    return dbc.Row([
+    return [dbc.Row([
         dbc.Col(balance_graph(), width=9),
         dbc.Col(balance_totals_area(), width=3, className="align-self-center")
-    ])
+    ]), dbc.Row([
+        dbc.Col(balance_account_graph(), width=9),
+        dbc.Col(balance_account_stat_area(), width=3, className="align-self-center")
+    ]), dbc.Row([
+        dbc.Col(income_sunburst(), width=6),
+        dbc.Col(expense_sunburst(), width=6)
+    ])]
 
 
 def build_layout():

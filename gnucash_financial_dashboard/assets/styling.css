@@ -11,10 +11,10 @@
 
 #sidebar {
     padding: 1em;
-    background-color: lightgray;
+    box-shadow: 1px 0 4px rgba(200, 200, 200, 0.8);
 }
 
-#monthly-avg-table td {
+.fd-table td {
     text-align: right
 }
 
