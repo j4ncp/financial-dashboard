@@ -5,8 +5,6 @@ from datetime import timedelta, datetime
 from dash import Dash, html, dcc, Output, Input
 import dash_bootstrap_components as dbc
 
-import pandas as pd
-
 from . import data
 from . import plotting
 

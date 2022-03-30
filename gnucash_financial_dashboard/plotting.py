@@ -1,8 +1,5 @@
 
-
-import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 
 """
 def plot_accounts_sunburst(filename, from_date, to_date, account_type="EXPENSE"):
