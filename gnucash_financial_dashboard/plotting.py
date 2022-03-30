@@ -1,10 +1,10 @@
-from .data import retrieve_income_expense_transactions, retrieve_accounts, retrieve_account_balances
+
 
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-
+"""
 def plot_accounts_sunburst(filename, from_date, to_date, account_type="EXPENSE"):
     data = retrieve_income_expense_transactions(filename)
     # filter down dataframe by the timeframe and account type
@@ -63,21 +63,17 @@ def plot_accounts_sunburst(filename, from_date, to_date, account_type="EXPENSE")
     )
 
     return fig
+"""
 
-
-def plot_income_expense_by_month(filename, from_date, to_date):
+def plot_income_expense_by_month(df):
     """
     Make a bar plot for income and expenses by month in the given timeframe.
+    Given dataframe needs to be filtered to desired timeframe
     """
-    data = retrieve_income_expense_transactions(filename)
-    # filter down dataframe by the timeframe
-    data_frame = data[(data.tx_date >= pd.to_datetime(from_date)) &
-                      (data.tx_date <= pd.to_datetime(to_date))]
-
     # filter for income and expenses
-    income = data_frame[data_frame.account_type == "INCOME"]
-    expense = data_frame[data_frame.account_type == "EXPENSE"]
-    balance_ym = data_frame.groupby(["ym", "account_type"]).sum().unstack().reset_index()
+    income = df[df.account_type == "INCOME"]
+    expense = df[df.account_type == "EXPENSE"]
+    balance_ym = df.groupby(["ym", "account_type"]).sum().unstack().reset_index()
 
     # make plot
     fig = go.Figure()
@@ -122,30 +118,30 @@ def plot_income_expense_by_month(filename, from_date, to_date):
         )
     )
     fig.update_layout(
-        xaxis_title="",
-        yaxis_title="Amount [€]",
-        barmode="relative"
+        #xaxis_title="",
+        #yaxis_title="Amount [€]",
+        template="plotly_white",
+        barmode="relative",
+        margin=dict(r=0, l=0, t=0, b=0),
+        legend=dict(yanchor="top", y=0.99, x=0.01, xanchor="left")
     )
     return fig
 
 
-def plot_account_balances(filename, account_name, from_date, to_date):
+def plot_account_timeline(df):
     """
     Make a line plot for the balance of a given account
+    Given dataframe needs to be filtered to desired timeframe
     """
-    data = retrieve_account_balances(filename, account_name)
-    # filter down dataframe by the timeframe
-    data_frame = data[(data.tx_date >= pd.to_datetime(from_date)) &
-                      (data.tx_date <= pd.to_datetime(to_date))]
-
     # make plot
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=data_frame.tx_date,
-            y=data_frame.balance,
+            name="",  # disable name to not show "trace 0"
+            x=df.tx_date,
+            y=df.balance,
             marker_color="blue",
-            customdata=data_frame[["amount", "desc"]],
+            customdata=df[["amount", "desc"]],
             hovertemplate='<br>'.join([
                 "Balance: %{y}€",
                 "Date: %{x}",
@@ -155,7 +151,9 @@ def plot_account_balances(filename, account_name, from_date, to_date):
         )
     )
     fig.update_layout(
-        xaxis_title="",
-        yaxis_title="Balance [€]"
+        #xaxis_title="",
+        #yaxis_title="Balance [€]"
+        template="plotly_white",
+        margin=dict(l=0, r=0, t=0, b=0)
     )
     return fig

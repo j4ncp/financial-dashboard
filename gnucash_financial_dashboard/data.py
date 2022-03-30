@@ -5,6 +5,9 @@ import os
 import pandas as pd
 import numpy as np
 
+# --------------------------------------------------------------------------------------------
+# DATA QUERY FUNCTIONS
+
 
 def retrieve_accounts(gnucash_file, build_fullname=False) -> pd.DataFrame:
     # get all account data from the sqlite3 db
@@ -37,7 +40,7 @@ def retrieve_accounts(gnucash_file, build_fullname=False) -> pd.DataFrame:
     return df
 
 
-def retrieve_income_expense_transactions(gnucash_filename):
+def retrieve_income_expense_transactions(gnucash_filename) -> pd.DataFrame:
     conn = sqlite3.connect(gnucash_filename)
     query = """
         SELECT
@@ -71,7 +74,7 @@ def retrieve_income_expense_transactions(gnucash_filename):
     return df
 
 
-def retrieve_account_balances(gnucash_filename, account_name):
+def retrieve_account_transactions(gnucash_filename, account_guid):
     conn = sqlite3.connect(gnucash_filename)
     query = """
         SELECT
@@ -88,8 +91,8 @@ def retrieve_account_balances(gnucash_filename, account_name):
         INNER JOIN accounts 
           ON splits.account_guid=accounts.guid
         WHERE 
-          accounts.name='{}'
-        """.format(account_name)
+          accounts.guid='{}'
+        """.format(account_guid)
     df = pd.read_sql_query(query, conn)
     # now fix us a small issues with the dating and amounts:
     df.tx_date = pd.to_datetime(df.tx_date)
@@ -103,35 +106,15 @@ def retrieve_account_balances(gnucash_filename, account_name):
     return df
 
 
-def retrieve_tx_date_range(gnucash_filename):
-    df = retrieve_income_expense_transactions(gnucash_filename)
-    return df.tx_date.min(), df.tx_date.max()
-
-
 def retrieve_last_updated(filename) -> str:
     timestamp = datetime.datetime.fromtimestamp(os.stat(filename).st_mtime)
     return timestamp.isoformat(sep=" ", timespec="minutes")
 
 
-def retrieve_last_tx_date(gnucash_filename) -> str:
-    _, date_max = retrieve_tx_date_range(gnucash_filename)
-    return date_max.isoformat(sep=" ", timespec="minutes")
+# --------------------------------------------------------------------------------------------
+# FILTERING FUNCTIONS
 
 
-def retrieve_income_expense_balances(gnucash_filename, from_date, to_date):
-    data = retrieve_income_expense_transactions(gnucash_filename)
-    # filter down dataframe by the timeframe
-    data_frame = data[(data.tx_date >= pd.to_datetime(from_date)) &
-                      (data.tx_date <= pd.to_datetime(to_date))]
-
-    # filter for income and expenses
-    balance_ym = data_frame.groupby(["ym", "account_type"]).sum().unstack().reset_index()
-
-    # compute average income and expense per month
-    averages = balance_ym.amount.mean().reset_index().rename(columns={0: "avg_amount"})
-
-    return averages[averages.account_type == "INCOME"].avg_amount.iloc[0], \
-           averages[averages.account_type == "EXPENSE"].avg_amount.iloc[0]
-
-
-
+def filter_by_timeframe(df, from_date, to_date):
+    return df[(df.tx_date >= pd.to_datetime(from_date)) &
+              (df.tx_date <= pd.to_datetime(to_date))]
